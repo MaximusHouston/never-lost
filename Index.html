@@ -1,0 +1,477 @@
+<script>
+// ─── State ───────────────────────────────────────────────────────────────────
+let state = {
+  lat: null, lon: null,
+  heading: 0,
+  home: null,
+  waypoints: [],
+  targetId: null,
+  unit: 'ft',
+  smooth: true,
+  vibe: true,
+  highAcc: true,
+  gpsWatch: null,
+  smoothHeading: 0,
+  calibrated: true,
+};
+
+const WP_COLORS = ['#3b82f6','#f59e0b','#ec4899','#8b5cf6','#06b6d4','#f97316'];
+
+// ─── Boot ─────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  loadState();
+  drawTicks();
+  renderWaypointList();
+  updateHomeInfo();
+  
+  // Bind button in code, not HTML
+  document.getElementById('enable-btn')?.addEventListener('click', requestPermissions);
+});
+
+// ─── Permissions ─────────────────────────────────────────────────────────────
+async function requestPermissions() {
+  console.log('Requesting permissions...');
+  
+  // iOS 13-16: explicit permission needed
+  if (typeof DeviceOrientationEvent !== 'undefined' &&
+      typeof DeviceOrientationEvent.requestPermission === 'function') {
+    try {
+      console.log('Requesting iOS compass permission...');
+      const res = await DeviceOrientationEvent.requestPermission();
+      if (res !== 'granted') {
+        alert('Compass permission denied. The app needs compass access to work.');
+        return;
+      }
+      console.log('Compass permission granted');
+    } catch(e) {
+      console.error('Compass permission error:', e);
+    }
+  }
+  
+  startGPS();
+  startCompass();
+  document.getElementById('permission-overlay').classList.add('hidden');
+}
+
+// ─── GPS ──────────────────────────────────────────────────────────────────────
+function startGPS() {
+  if (!navigator.geolocation) { 
+    alert('Geolocation not supported.'); 
+    return; 
+  }
+  
+  console.log('Starting GPS watch...');
+  const opts = { 
+    enableHighAccuracy: state.highAcc, 
+    maximumAge: 2000, 
+    timeout: 15000 
+  };
+  
+  // Clear existing watch if any
+  if (state.gpsWatch !== null) {
+    navigator.geolocation.clearWatch(state.gpsWatch);
+  }
+  
+  state.gpsWatch = navigator.geolocation.watchPosition(onGPS, onGPSError, opts);
+}
+
+function restartGPS() {
+  if (state.gpsWatch !== null) navigator.geolocation.clearWatch(state.gpsWatch);
+  startGPS();
+}
+
+function onGPS(pos) {
+  console.log('GPS position received:', pos.coords.latitude, pos.coords.longitude);
+  state.lat = pos.coords.latitude;
+  state.lon = pos.coords.longitude;
+  document.getElementById('status-dot').className = 'active';
+  const acc = pos.coords.accuracy;
+  document.getElementById('accuracy-txt').textContent = `±${Math.round(acc)}m`;
+  document.getElementById('lat-val').textContent = state.lat.toFixed(5);
+  document.getElementById('lon-val').textContent = state.lon.toFixed(5);
+  updateArrow();
+  updateWaypointDistances();
+  nearAlert();
+}
+
+function onGPSError(e) {
+  console.error('GPS Error:', e.code, e.message);
+  document.getElementById('status-dot').className = 'warn';
+  
+  let msg = 'GPS Error';
+  if (e.code === 1) msg = 'Location permission denied';
+  else if (e.code === 2) msg = 'Position unavailable';
+  else if (e.code === 3) msg = 'GPS timeout';
+  
+  document.getElementById('accuracy-txt').textContent = msg;
+}
+
+// ─── Compass ──────────────────────────────────────────────────────────────────
+function startCompass() {
+  console.log('Starting compass...');
+  window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+  window.addEventListener('deviceorientation', handleOrientation, true);
+  
+  // Show calibration hint
+  const banner = document.getElementById('cal-banner');
+  banner.classList.add('show');
+  setTimeout(() => banner.classList.remove('show'), 8000);
+}
+
+function handleOrientation(e) {
+  let h = null;
+  
+  if (e.absolute && e.alpha !== null) {
+    h = (360 - e.alpha) % 360;
+  } else if (e.webkitCompassHeading !== undefined) {
+    h = e.webkitCompassHeading;
+  } else if (e.alpha !== null) {
+    h = (360 - e.alpha) % 360;
+  }
+  
+  if (h === null) return;
+
+  // Calibration check for iOS
+  if (e.webkitCompassAccuracy !== undefined && e.webkitCompassAccuracy > 50) {
+    document.getElementById('cal-banner').classList.add('show');
+  } else if (e.webkitCompassAccuracy !== undefined) {
+    document.getElementById('cal-banner').classList.remove('show');
+  }
+
+  if (state.smooth) {
+    state.smoothHeading = circularLerp(state.smoothHeading, h, 0.15);
+    state.heading = state.smoothHeading;
+  } else {
+    state.heading = h;
+  }
+
+  document.getElementById('heading-val').textContent = Math.round(state.heading) + '°';
+  updateArrow();
+}
+
+function circularLerp(a, b, t) {
+  let diff = b - a;
+  while (diff > 180) diff -= 360;
+  while (diff < -180) diff += 360;
+  return (a + diff * t + 360) % 360;
+}
+
+// ─── Arrow ────────────────────────────────────────────────────────────────────
+function updateArrow() {
+  const target = getTarget();
+  const svg = document.getElementById('arrow-svg');
+  const poly = document.getElementById('arrow-poly');
+
+  if (!target || state.lat === null) {
+    svg.classList.add('no-target');
+    svg.style.transform = `translate(-50%, -50%) rotate(0deg)`;
+    document.getElementById('distance-val').textContent = '---';
+    document.getElementById('bearing-val').textContent = '---°';
+    return;
+  }
+
+  svg.classList.remove('no-target');
+
+  const bearing = computeBearing(state.lat, state.lon, target.lat, target.lon);
+  const dist = computeDistance(state.lat, state.lon, target.lat, target.lon);
+  const rotation = (bearing - state.heading + 360) % 360;
+  svg.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
+
+  const isHome = state.targetId === 'home';
+  poly.setAttribute('fill', isHome ? '#22c55e' : (target.color || '#3b82f6'));
+  svg.style.filter = isHome
+    ? 'drop-shadow(0 0 12px rgba(34,197,94,0.7))'
+    : `drop-shadow(0 0 12px ${target.color || '#3b82f6'}88)`;
+
+  let distDisplay, unitLabel;
+  if (state.unit === 'ft') {
+    distDisplay = (dist * 3.28084).toFixed(0);
+    unitLabel = 'feet';
+  } else {
+    distDisplay = dist >= 1000 ? (dist/1000).toFixed(2) + ' km' : dist.toFixed(1);
+    unitLabel = dist >= 1000 ? '' : 'meters';
+  }
+
+  document.getElementById('distance-val').textContent = distDisplay;
+  document.getElementById('distance-unit').textContent = unitLabel;
+  document.getElementById('bearing-val').textContent = Math.round(bearing) + '°';
+}
+
+// ─── Near Alert ───────────────────────────────────────────────────────────────
+let lastNearAlert = 0;
+function nearAlert() {
+  const target = getTarget();
+  if (!target || state.lat === null) { 
+    document.getElementById('pulse').classList.remove('pulse'); 
+    return; 
+  }
+  const dist = computeDistance(state.lat, state.lon, target.lat, target.lon);
+  const threshold = state.unit === 'ft' ? 10 : 3;
+  if (dist <= threshold) {
+    document.getElementById('pulse').classList.add('pulse');
+    const now = Date.now();
+    if (state.vibe && now - lastNearAlert > 3000 && navigator.vibrate) {
+      navigator.vibrate([200, 100, 200]);
+      lastNearAlert = now;
+    }
+  } else {
+    document.getElementById('pulse').classList.remove('pulse');
+  }
+}
+
+// ─── Home ────────────────────────────────────────────────────────────────────
+function setHome() {
+  if (state.lat === null) { alert('GPS not ready yet. Please wait for GPS lock.'); return; }
+  state.home = { lat: state.lat, lon: state.lon };
+  state.targetId = 'home';
+  saveState();
+  updateHomeInfo();
+  updateArrow();
+  document.getElementById('target-label').textContent = '🏠 Navigating to Home';
+  haptic();
+}
+
+function updateHomeInfo() {
+  const el = document.getElementById('home-info');
+  const btn = document.getElementById('nav-home-btn');
+  if (state.home) {
+    el.textContent = `Home: ${state.home.lat.toFixed(5)}, ${state.home.lon.toFixed(5)}`;
+    btn.style.display = 'block';
+  } else {
+    el.textContent = 'No home point set. Stand at your starting point and tap the button above.';
+    btn.style.display = 'none';
+  }
+}
+
+// ─── Waypoints ────────────────────────────────────────────────────────────────
+function toggleWpForm() {
+  const f = document.getElementById('wp-form');
+  f.classList.toggle('open');
+  if (f.classList.contains('open')) document.getElementById('wp-name-input').focus();
+}
+
+function saveWaypoint() {
+  if (state.lat === null) { alert('GPS not ready yet.'); return; }
+  const nameEl = document.getElementById('wp-name-input');
+  const name = nameEl.value.trim() || `Waypoint ${state.waypoints.length + 1}`;
+  const color = WP_COLORS[state.waypoints.length % WP_COLORS.length];
+  const wp = { id: Date.now().toString(), name, lat: state.lat, lon: state.lon, color };
+  state.waypoints.push(wp);
+  state.targetId = wp.id;
+  nameEl.value = '';
+  document.getElementById('wp-form').classList.remove('open');
+  saveState();
+  renderWaypointList();
+  updateArrow();
+  document.getElementById('target-label').textContent = `📍 Navigating to ${name}`;
+  haptic();
+}
+
+function navigateTo(id) {
+  state.targetId = id;
+  saveState();
+  updateArrow();
+  const target = getTarget();
+  document.getElementById('target-label').textContent = id === 'home'
+    ? '🏠 Navigating to Home'
+    : `📍 Navigating to ${target ? target.name : ''}`;
+  renderWaypointList();
+  switchTab('home-tab', document.querySelector('.tab-btn'));
+  haptic();
+}
+
+function deleteWaypoint(id, e) {
+  e.stopPropagation();
+  state.waypoints = state.waypoints.filter(w => w.id !== id);
+  if (state.targetId === id) state.targetId = state.home ? 'home' : null;
+  saveState();
+  renderWaypointList();
+  updateArrow();
+}
+
+function renderWaypointList() {
+  const list = document.getElementById('wp-list');
+  const empty = document.getElementById('wp-empty');
+  list.innerHTML = '';
+
+  if (state.home) {
+    const dist = state.lat ? computeDistance(state.lat, state.lon, state.home.lat, state.home.lon) : null;
+    const item = makeWpItem('home', '🏠 Home', '#22c55e', dist, state.targetId === 'home');
+    list.appendChild(item);
+  }
+
+  state.waypoints.forEach(wp => {
+    const dist = state.lat ? computeDistance(state.lat, state.lon, wp.lat, wp.lon) : null;
+    const item = makeWpItem(wp.id, wp.name, wp.color, dist, state.targetId === wp.id, wp.id);
+    list.appendChild(item);
+  });
+
+  empty.style.display = (!state.home && state.waypoints.length === 0) ? 'block' : 'none';
+}
+
+function makeWpItem(id, name, color, dist, selected, deleteId) {
+  const item = document.createElement('div');
+  item.className = 'wp-item' + (selected ? ' selected' : '');
+  item.onclick = () => navigateTo(id);
+
+  let distText = '';
+  if (dist !== null) {
+    distText = state.unit === 'ft'
+      ? `${(dist * 3.28084).toFixed(0)} ft away`
+      : (dist >= 1000 ? `${(dist/1000).toFixed(2)} km away` : `${dist.toFixed(1)} m away`);
+  }
+
+  item.innerHTML = `
+    <div class="wp-dot" style="background:${color}"></div>
+    <div class="wp-info">
+      <div class="wp-name">${name}</div>
+      <div class="wp-dist">${distText || 'No GPS yet'}</div>
+    </div>
+    ${selected ? '<span style="color:var(--green);font-size:14px">▶</span>' : ''}
+    ${deleteId ? `<button class="wp-del" onclick="deleteWaypoint('${deleteId}', event)">✕</button>` : ''}
+  `;
+  return item;
+}
+
+function updateWaypointDistances() {
+  renderWaypointList();
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function getTarget() {
+  if (!state.targetId) return null;
+  if (state.targetId === 'home') return state.home;
+  return state.waypoints.find(w => w.id === state.targetId) || null;
+}
+
+function computeBearing(lat1, lon1, lat2, lon2) {
+  const toRad = d => d * Math.PI / 180;
+  const dLon = toRad(lon2 - lon1);
+  const y = Math.sin(dLon) * Math.cos(toRad(lat2));
+  const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
+            Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
+  return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+}
+
+function computeDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const toRad = d => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1), dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function drawTicks() {
+  const canvas = document.getElementById('tick-canvas');
+  const ring = document.getElementById('compass-ring');
+  const size = ring.offsetWidth || 280;
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  const cx = size/2, cy = size/2, r = size/2 - 6;
+  for (let i = 0; i < 360; i += 5) {
+    const ang = (i - 90) * Math.PI / 180;
+    const isMajor = i % 45 === 0;
+    const len = isMajor ? 12 : (i % 15 === 0 ? 8 : 4);
+    ctx.beginPath();
+    ctx.moveTo(cx + (r - len) * Math.cos(ang), cy + (r - len) * Math.sin(ang));
+    ctx.lineTo(cx + r * Math.cos(ang), cy + r * Math.sin(ang));
+    ctx.strokeStyle = isMajor ? '#6b7280' : '#374151';
+    ctx.lineWidth = isMajor ? 2 : 1;
+    ctx.stroke();
+  }
+}
+
+function haptic() {
+  if (navigator.vibrate) navigator.vibrate(50);
+}
+
+// ─── Settings ────────────────────────────────────────────────────────────────
+function setUnit(u) {
+  state.unit = u;
+  document.getElementById('unit-ft').className = 'btn ' + (u === 'ft' ? 'btn-green' : 'btn-outline');
+  document.getElementById('unit-m').className = 'btn ' + (u === 'm' ? 'btn-green' : 'btn-outline');
+  document.getElementById('unit-ft').style.cssText = 'width:auto;padding:6px 14px;font-size:13px';
+  document.getElementById('unit-m').style.cssText = 'width:auto;padding:6px 14px;font-size:13px';
+  saveState();
+  updateArrow();
+  renderWaypointList();
+}
+
+function toggleSmooth() {
+  state.smooth = !state.smooth;
+  document.getElementById('smooth-toggle').className = 'toggle' + (state.smooth ? ' on' : '');
+  saveState();
+}
+
+function toggleVibe() {
+  state.vibe = !state.vibe;
+  document.getElementById('vibe-toggle').className = 'toggle' + (state.vibe ? ' on' : '');
+  saveState();
+}
+
+function toggleAccuracy() {
+  state.highAcc = !state.highAcc;
+  document.getElementById('acc-toggle').className = 'toggle' + (state.highAcc ? ' on' : '');
+  saveState();
+  restartGPS();
+}
+
+function clearAll() {
+  if (!confirm('Clear all saved home & waypoints?')) return;
+  state.home = null; state.waypoints = []; state.targetId = null;
+  saveState();
+  renderWaypointList();
+  updateHomeInfo();
+  updateArrow();
+  document.getElementById('target-label').textContent = 'No target set';
+  document.getElementById('distance-val').textContent = '---';
+}
+
+// ─── Tab switching ────────────────────────────────────────────────────────────
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+  if (id === 'waypoints-tab') renderWaypointList();
+}
+
+// ─── Persistence ──────────────────────────────────────────────────────────────
+function saveState() {
+  localStorage.setItem('never_lost', JSON.stringify({
+    home: state.home, waypoints: state.waypoints,
+    targetId: state.targetId, unit: state.unit,
+    smooth: state.smooth, vibe: state.vibe, highAcc: state.highAcc
+  }));
+}
+
+function loadState() {
+  try {
+    const s = JSON.parse(localStorage.getItem('never_lost') || '{}');
+    if (s.home) state.home = s.home;
+    if (s.waypoints) state.waypoints = s.waypoints;
+    if (s.targetId) state.targetId = s.targetId;
+    if (s.unit) state.unit = s.unit;
+    if (s.smooth !== undefined) state.smooth = s.smooth;
+    if (s.vibe !== undefined) state.vibe = s.vibe;
+    if (s.highAcc !== undefined) state.highAcc = s.highAcc;
+  } catch(e) {}
+  
+  setUnit(state.unit);
+  document.getElementById('smooth-toggle').className = 'toggle' + (state.smooth ? ' on' : '');
+  document.getElementById('vibe-toggle').className = 'toggle' + (state.vibe ? ' on' : '');
+  document.getElementById('acc-toggle').className = 'toggle' + (state.highAcc ? ' on' : '');
+  
+  if (state.targetId) {
+    const t = getTarget();
+    if (t) {
+      document.getElementById('target-label').textContent = state.targetId === 'home'
+        ? '🏠 Navigating to Home' : `📍 Navigating to ${t.name}`;
+    }
+  }
+}
+
+window.addEventListener('resize', () => {
+  setTimeout(drawTicks, 200);
+});
+</script>
