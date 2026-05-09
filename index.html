@@ -16,7 +16,7 @@ html,body{height:100%;width:100%;background:var(--bg);color:var(--text);font-fam
 #status-dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
 #status-dot.active{background:var(--green);box-shadow:0 0 6px var(--green)}
 #compass-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px;min-height:0;overflow:hidden}
-#compass-ring{position:relative;width:min(60vw,230px);height:min(60vw,230px);flex-shrink:0;transition:transform 0.2s ease-out}
+#compass-ring{position:relative;width:min(60vw,230px);height:min(60vw,230px);flex-shrink:0}
 #compass-ring::before{content:'';position:absolute;inset:0;border-radius:50%;border:3px solid var(--border);background:radial-gradient(circle at 50% 50%,#141c2f 60%,#0d1220)}
 .cardinal{position:absolute;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--muted);transform:translate(-50%,-50%)}
 .cardinal.N{top:6%;left:50%;color:var(--red)}
@@ -177,16 +177,10 @@ function handleOrientation(e){
     state.heading=state.smoothHeading;
   }else{state.heading=h}
   document.getElementById('heading-val').textContent=Math.round(state.heading)+'°';
-  updateCompassRing();
   updateArrow();
 }
 
 function circularLerp(a,b,t){let diff=b-a;while(diff>180)diff-=360;while(diff<-180)diff+=360;return(a+diff*t+360)%360}
-
-function updateCompassRing(){
-  let ring=document.getElementById('compass-ring');
-  ring.style.transform='rotate('+(-state.heading)+'deg)';
-}
 
 function updateArrow(){
   let target=getTarget();let svg=document.getElementById('arrow-svg');
@@ -198,8 +192,9 @@ function updateArrow(){
   }
   let bearing=computeBearing(state.lat,state.lon,target.lat,target.lon);
   let dist=computeDistance(state.lat,state.lon,target.lat,target.lon);
-  // Arrow points to target relative to screen (bearing rotated by compass ring)
-  svg.style.transform='translate(-50%,-50%) rotate('+bearing+'deg)';
+  // Arrow rotation = bearing relative to heading (so 0° = straight ahead)
+  let arrowRotation=(bearing-state.heading+360)%360;
+  svg.style.transform='translate(-50%,-50%) rotate('+arrowRotation+'deg)';
   let distDisplay;
   if(state.unit==='ft'){
     let ft=dist*3.28084;
