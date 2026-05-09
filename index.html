@@ -16,8 +16,8 @@ html,body{height:100%;width:100%;background:var(--bg);color:var(--text);font-fam
 #status-dot{width:10px;height:10px;border-radius:50%;background:var(--muted);transition:background .4s}
 #status-dot.active{background:var(--green);box-shadow:0 0 8px var(--green)}
 #status-dot.warn{background:var(--yellow)}
-#compass-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;padding:16px;min-height:0}
-#compass-ring{position:relative;width:min(72vw,320px);height:min(72vw,320px);flex-shrink:0}
+#compass-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;padding:16px;min-height:0;overflow-y:auto}
+#compass-ring{position:relative;width:min(72vw,280px);height:min(72vw,280px);flex-shrink:0}
 #compass-ring::before{content:'';position:absolute;inset:0;border-radius:50%;border:3px solid var(--border);background:radial-gradient(circle at 50% 50%,#141c2f 60%,#0d1220)}
 .cardinal{position:absolute;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--muted);transform:translate(-50%,-50%)}
 .cardinal.N{top:6%;left:50%;color:var(--red)}
@@ -27,30 +27,30 @@ html,body{height:100%;width:100%;background:var(--bg);color:var(--text);font-fam
 #tick-canvas{position:absolute;inset:0;border-radius:50%}
 #arrow-svg{position:absolute;top:50%;left:50%;width:60%;height:60%;transform:translate(-50%,-50%) rotate(0deg);transition:transform 0.25s cubic-bezier(0.34,1.56,0.64,1);filter:drop-shadow(0 0 12px rgba(34,197,94,0.7))}
 #center-dot{position:absolute;top:50%;left:50%;width:18px;height:18px;border-radius:50%;background:var(--surface2);border:2px solid var(--border);transform:translate(-50%,-50%);z-index:10}
-#distance-badge{margin-top:16px;background:var(--surface2);border:1px solid var(--border);border-radius:100px;padding:8px 24px;text-align:center}
+#distance-badge{margin-top:12px;background:var(--surface2);border:1px solid var(--border);border-radius:100px;padding:8px 24px;text-align:center}
 #distance-val{font-size:32px;font-weight:800;color:var(--green);line-height:1}
 #distance-unit{font-size:13px;color:var(--muted);margin-top:2px}
 #target-label{font-size:11px;color:var(--blue);margin-top:4px;text-transform:uppercase;letter-spacing:.8px}
 #info-row{display:flex;gap:8px;margin-top:10px;flex-shrink:0}
 .info-chip{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:11px;color:var(--muted);text-align:center;line-height:1.5}
 .info-chip span{display:block;font-size:13px;font-weight:600;color:var(--text)}
-#bottom-panel{background:var(--surface);border-top:1px solid var(--border);flex-shrink:0}
+#bottom-panel{background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;max-height:45vh;overflow-y:auto}
 #tab-bar{display:flex;border-bottom:1px solid var(--border)}
 .tab-btn{flex:1;padding:10px 4px;background:none;border:none;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;transition:all .2s}
 .tab-btn.active{color:var(--green);border-bottom-color:var(--green)}
 .tab-content{display:none;padding:12px 14px 16px}
 .tab-content.active{display:block}
-.btn{width:100%;padding:12px;border-radius:var(--radius);border:none;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.4px}
+.btn{width:100%;padding:12px;border-radius:var(--radius);border:none;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.4px;transition:opacity .15s,transform .1s}
 .btn:active{transform:scale(.97);opacity:.85}
 .btn-green{background:var(--green);color:#000}
 .btn-blue{background:var(--blue);color:#fff}
 .btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}
 #wp-list{max-height:130px;overflow-y:auto;margin-top:10px}
-.wp-item{display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px 10px;margin-bottom:6px;cursor:pointer}
+.wp-item{display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px 10px;margin-bottom:6px;cursor:pointer;transition:border-color .2s}
 .wp-item.selected{border-color:var(--blue)}
 .wp-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
 .wp-info{flex:1;min-width:0}
-.wp-name{font-size:13px;font-weight:600}
+.wp-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .wp-dist{font-size:11px;color:var(--muted)}
 .wp-del{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:2px 4px}
 #wp-form{display:none;margin-top:10px}
@@ -58,8 +58,8 @@ html,body{height:100%;width:100%;background:var(--bg);color:var(--text);font-fam
 #wp-name-input{flex:1;padding:10px 12px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:14px}
 .setting-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)}
 .setting-label{font-size:14px}
-.toggle{width:44px;height:24px;border-radius:100px;background:var(--border);border:none;cursor:pointer;position:relative}
-.toggle::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:white}
+.toggle{width:44px;height:24px;border-radius:100px;background:var(--border);border:none;cursor:pointer;position:relative;transition:background .2s}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:white;transition:transform .2s}
 .toggle.on{background:var(--green)}
 .toggle.on::after{transform:translateX(20px)}
 #permission-overlay{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;gap:16px}
@@ -128,313 +128,103 @@ html,body{height:100%;width:100%;background:var(--bg);color:var(--text);font-fam
 </div>
 </div>
 <script>
-let state={lat:null,lon:null,heading:0,home:null,waypoints:[],targetId:null,unit:'ft',smooth:true,vibe:true,highAcc:true,gpsWatch:null,smoothHeading:0,compassReady:false};
+let state={lat:null,lon:null,heading:0,home:null,waypoints:[],targetId:null,unit:'ft',smooth:true,vibe:true,highAcc:true,gpsWatch:null,smoothHeading:0};
 const WP_COLORS=['#3b82f6','#f59e0b','#ec4899','#8b5cf6','#06b6d4','#f97316'];
+window.addEventListener('DOMContentLoaded',()=>{loadState();drawTicks();renderWaypointList();updateHomeInfo();document.getElementById('enable-btn').addEventListener('click',requestPermissions)});
 
-window.addEventListener('DOMContentLoaded',()=>{
-  loadState();
-  drawTicks();
-  renderWaypointList();
-  updateHomeInfo();
-  document.getElementById('enable-btn').addEventListener('click',requestPermissions);
-});
-
-function requestPermissions(){
-  if(!navigator.geolocation){alert('Geolocation not supported');return;}
-  // Android needs this direct user gesture
+async function requestPermissions(){
+  document.getElementById('status-msg').textContent='Requesting access...';
+  if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){
+    try{await DeviceOrientationEvent.requestPermission()}catch(e){}
+  }
   startCompass();
   startGPS();
   document.getElementById('permission-overlay').classList.add('hidden');
 }
 
 function startGPS(){
-  const opts={enableHighAccuracy:true,maximumAge:0,timeout:30000};
+  if(!navigator.geolocation){document.getElementById('status-msg').textContent='GPS not supported';return}
+  const opts={enableHighAccuracy:state.highAcc,maximumAge:2000,timeout:15000};
   if(state.gpsWatch!==null)navigator.geolocation.clearWatch(state.gpsWatch);
   state.gpsWatch=navigator.geolocation.watchPosition(onGPS,onGPSError,opts);
-  document.getElementById('status-msg').textContent='Acquiring GPS...';
 }
-
-function restartGPS(){
-  if(state.gpsWatch!==null)navigator.geolocation.clearWatch(state.gpsWatch);
-  startGPS();
-}
-
+function restartGPS(){if(state.gpsWatch!==null)navigator.geolocation.clearWatch(state.gpsWatch);startGPS()}
 function onGPS(pos){
-  state.lat=pos.coords.latitude;
-  state.lon=pos.coords.longitude;
+  state.lat=pos.coords.latitude;state.lon=pos.coords.longitude;
   document.getElementById('status-dot').className='active';
   document.getElementById('accuracy-txt').textContent='±'+Math.round(pos.coords.accuracy)+'m';
   document.getElementById('lat-val').textContent=state.lat.toFixed(5);
   document.getElementById('lon-val').textContent=state.lon.toFixed(5);
-  document.getElementById('status-msg').textContent='GPS Ready';
-  updateArrow();
-  updateWaypointDistances();
-  nearAlert();
+  updateArrow();updateWaypointDistances();nearAlert();
 }
-
-function onGPSError(e){
-  document.getElementById('status-dot').className='warn';
-  document.getElementById('accuracy-txt').textContent='GPS Err';
-  document.getElementById('status-msg').textContent='GPS Error - please allow location';
-}
+function onGPSError(e){document.getElementById('status-dot').className='warn';document.getElementById('accuracy-txt').textContent='GPS Error'}
 
 function startCompass(){
-  // Android: use deviceorientation with absolute check
-  window.addEventListener('deviceorientationabsolute',handleOrientation,true);
-  window.addEventListener('deviceorientation',handleOrientation,true);
   document.getElementById('cal-banner').classList.add('show');
-  setTimeout(()=>document.getElementById('cal-banner').classList.remove('show'),8000);
+  setTimeout(()=>document.getElementById('cal-banner').classList.remove('show'),10000);
+  if('ondeviceorientationabsolute' in window){
+    window.addEventListener('deviceorientationabsolute',handleOrientation,true);
+  }
+  window.addEventListener('deviceorientation',handleOrientation,true);
 }
 
 function handleOrientation(e){
   let h=null;
-  // Try absolute first (Android)
-  if(e.absolute&&e.alpha!==null){
-    h=(360-e.alpha)%360;
-    state.compassReady=true;
-  }else if(e.webkitCompassHeading!==undefined){
-    h=e.webkitCompassHeading;
-    state.compassReady=true;
-  }else if(e.alpha!==null){
-    h=(360-e.alpha)%360;
-    state.compassReady=true;
-  }
+  if(e.webkitCompassHeading!==undefined)h=e.webkitCompassHeading;
+  else if(e.absolute&&e.alpha!==null)h=(360-e.alpha)%360;
+  else if(e.alpha!==null)h=(360-e.alpha)%360;
   if(h===null)return;
-  
-  if(state.smooth){
-    state.smoothHeading=circularLerp(state.smoothHeading,h,0.15);
-    state.heading=state.smoothHeading;
-  }else{
-    state.heading=h;
-  }
+  if(state.smooth){state.smoothHeading=circularLerp(state.smoothHeading||h,h,0.15);state.heading=state.smoothHeading}
+  else state.heading=h;
   document.getElementById('heading-val').textContent=Math.round(state.heading)+'°';
   updateArrow();
 }
-
-function circularLerp(a,b,t){
-  let diff=b-a;
-  while(diff>180)diff-=360;
-  while(diff<-180)diff+=360;
-  return(a+diff*t+360)%360;
-}
+function circularLerp(a,b,t){let diff=b-a;while(diff>180)diff-=360;while(diff<-180)diff+=360;return(a+diff*t+360)%360}
 
 function updateArrow(){
-  let target=getTarget();
-  let svg=document.getElementById('arrow-svg');
-  if(!target||state.lat===null){
-    svg.style.transform='translate(-50%,-50%) rotate(0deg)';
-    document.getElementById('distance-val').textContent='---';
-    document.getElementById('bearing-val').textContent='---°';
-    return;
-  }
+  let target=getTarget();let svg=document.getElementById('arrow-svg');
+  if(!target||state.lat===null){svg.style.transform='translate(-50%,-50%) rotate(0deg)';document.getElementById('distance-val').textContent='---';document.getElementById('bearing-val').textContent='---°';return}
   let bearing=computeBearing(state.lat,state.lon,target.lat,target.lon);
   let dist=computeDistance(state.lat,state.lon,target.lat,target.lon);
   let rotation=(bearing-state.heading+360)%360;
   svg.style.transform='translate(-50%,-50%) rotate('+rotation+'deg)';
-  let isHome=state.targetId==='home';
-  document.getElementById('arrow-poly').setAttribute('fill',isHome?'#22c55e':(target.color||'#3b82f6'));
-  
-  let distDisplay;
-  if(state.unit==='ft'){
-    distDisplay=Math.round(dist*3.28084);
-    document.getElementById('distance-unit').textContent='feet';
-  }else{
-    distDisplay=dist>=1000?(dist/1000).toFixed(2)+' km':Math.round(dist);
-    document.getElementById('distance-unit').textContent=dist>=1000?'':'meters';
-  }
+  let distDisplay,unitLabel;
+  if(state.unit==='ft'){distDisplay=Math.round(dist*3.28084);unitLabel='feet'}
+  else{distDisplay=dist>=1000?(dist/1000).toFixed(2)+' km':Math.round(dist);unitLabel=dist>=1000?'':'meters'}
   document.getElementById('distance-val').textContent=distDisplay;
+  document.getElementById('distance-unit').textContent=unitLabel;
   document.getElementById('bearing-val').textContent=Math.round(bearing)+'°';
 }
 
 let lastNearAlert=0;
 function nearAlert(){
-  let target=getTarget();
-  if(!target||state.lat===null){document.getElementById('pulse').classList.remove('pulse');return}
+  let target=getTarget();if(!target||state.lat===null){document.getElementById('pulse').classList.remove('pulse');return}
   let dist=computeDistance(state.lat,state.lon,target.lat,target.lon);
-  if(dist<=5){
-    document.getElementById('pulse').classList.add('pulse');
-    let now=Date.now();
-    if(state.vibe&&now-lastNearAlert>3000&&navigator.vibrate){navigator.vibrate([200,100,200]);lastNearAlert=now}
-  }else{
-    document.getElementById('pulse').classList.remove('pulse');
-  }
+  if(dist<=(state.unit==='ft'?10:3)){document.getElementById('pulse').classList.add('pulse');let now=Date.now();if(state.vibe&&now-lastNearAlert>3000&&navigator.vibrate){navigator.vibrate([200,100,200]);lastNearAlert=now}}
+  else document.getElementById('pulse').classList.remove('pulse')
 }
-
-function setHome(){
-  if(state.lat===null){alert('GPS not ready yet.');return}
-  state.home={lat:state.lat,lon:state.lon};
-  state.targetId='home';
-  saveState();
-  updateHomeInfo();
-  updateArrow();
-  document.getElementById('target-label').textContent='🏠 Navigating to Home';
-}
-
-function updateHomeInfo(){
-  let el=document.getElementById('home-info');
-  let btn=document.getElementById('nav-home-btn');
-  if(state.home){el.textContent='Home: '+state.home.lat.toFixed(5)+', '+state.home.lon.toFixed(5);btn.style.display='block'}
-  else{el.textContent='No home point set.';btn.style.display='none'}
-}
-
-function toggleWpForm(){
-  let f=document.getElementById('wp-form');
-  f.classList.toggle('open');
-  if(f.classList.contains('open'))document.getElementById('wp-name-input').focus();
-}
-
-function saveWaypoint(){
-  if(state.lat===null){alert('GPS not ready yet.');return}
-  let name=document.getElementById('wp-name-input').value.trim()||'WP'+(state.waypoints.length+1);
-  let color=WP_COLORS[state.waypoints.length%WP_COLORS.length];
-  let wp={id:Date.now().toString(),name:name,lat:state.lat,lon:state.lon,color:color};
-  state.waypoints.push(wp);
-  state.targetId=wp.id;
-  document.getElementById('wp-name-input').value='';
-  document.getElementById('wp-form').classList.remove('open');
-  saveState();
-  renderWaypointList();
-  updateArrow();
-  document.getElementById('target-label').textContent='📍 Navigating to '+name;
-}
-
-function navigateTo(id){
-  state.targetId=id;
-  saveState();
-  updateArrow();
-  let target=getTarget();
-  document.getElementById('target-label').textContent=id==='home'?'🏠 Navigating to Home':'📍 Navigating to '+(target?target.name:'');
-  renderWaypointList();
-  switchTab('home-tab',document.querySelector('.tab-btn'));
-}
-
-function deleteWaypoint(id,e){
-  e.stopPropagation();
-  state.waypoints=state.waypoints.filter(w=>w.id!==id);
-  if(state.targetId===id)state.targetId=state.home?'home':null;
-  saveState();
-  renderWaypointList();
-  updateArrow();
-}
-
-function renderWaypointList(){
-  let list=document.getElementById('wp-list');
-  let empty=document.getElementById('wp-empty');
-  list.innerHTML='';
-  if(state.home){
-    let dist=state.lat?computeDistance(state.lat,state.lon,state.home.lat,state.home.lon):null;
-    list.appendChild(makeWpItem('home','🏠 Home','#22c55e',dist,state.targetId==='home'));
-  }
-  state.waypoints.forEach(wp=>{
-    let dist=state.lat?computeDistance(state.lat,state.lon,wp.lat,wp.lon):null;
-    list.appendChild(makeWpItem(wp.id,wp.name,wp.color,dist,state.targetId===wp.id,wp.id));
-  });
-  empty.style.display=(!state.home&&state.waypoints.length===0)?'block':'none';
-}
-
-function makeWpItem(id,name,color,dist,selected,deleteId){
-  let item=document.createElement('div');
-  item.className='wp-item'+(selected?' selected':'');
-  item.onclick=()=>navigateTo(id);
-  let distText='';
-  if(dist!==null)distText=state.unit==='ft'?Math.round(dist*3.28084)+' ft':(dist>=1000?(dist/1000).toFixed(2)+' km':Math.round(dist)+' m');
-  item.innerHTML='<div class="wp-dot" style="background:'+color+'"></div><div class="wp-info"><div class="wp-name">'+name+'</div><div class="wp-dist">'+(distText||'No GPS')+'</div></div>'+(selected?'<span style="color:var(--green);font-size:14px">▶</span>':'')+(deleteId?'<button class="wp-del" onclick="deleteWaypoint(\''+deleteId+'\',event)">✕</button>':'');
-  return item;
-}
-
+function setHome(){if(state.lat===null){alert('GPS not ready yet.');return}state.home={lat:state.lat,lon:state.lon};state.targetId='home';saveState();updateHomeInfo();updateArrow();document.getElementById('target-label').textContent='🏠 Navigating to Home';haptic()}
+function updateHomeInfo(){let el=document.getElementById('home-info');let btn=document.getElementById('nav-home-btn');if(state.home){el.textContent='Home: '+state.home.lat.toFixed(5)+', '+state.home.lon.toFixed(5);btn.style.display='block'}else{el.textContent='No home point set.';btn.style.display='none'}}
+function toggleWpForm(){let f=document.getElementById('wp-form');f.classList.toggle('open');if(f.classList.contains('open'))document.getElementById('wp-name-input').focus()}
+function saveWaypoint(){if(state.lat===null){alert('GPS not ready yet.');return}let name=document.getElementById('wp-name-input').value.trim()||'Waypoint '+(state.waypoints.length+1);let color=WP_COLORS[state.waypoints.length%WP_COLORS.length];let wp={id:Date.now().toString(),name:name,lat:state.lat,lon:state.lon,color:color};state.waypoints.push(wp);state.targetId=wp.id;document.getElementById('wp-name-input').value='';document.getElementById('wp-form').classList.remove('open');saveState();renderWaypointList();updateArrow();document.getElementById('target-label').textContent='📍 Navigating to '+name;haptic()}
+function navigateTo(id){state.targetId=id;saveState();updateArrow();let target=getTarget();document.getElementById('target-label').textContent=id==='home'?'🏠 Navigating to Home':'📍 Navigating to '+(target?target.name:'');renderWaypointList();switchTab('home-tab',document.querySelector('.tab-btn'));haptic()}
+function deleteWaypoint(id,e){e.stopPropagation();state.waypoints=state.waypoints.filter(w=>w.id!==id);if(state.targetId===id)state.targetId=state.home?'home':null;saveState();renderWaypointList();updateArrow()}
+function renderWaypointList(){let list=document.getElementById('wp-list');let empty=document.getElementById('wp-empty');list.innerHTML='';if(state.home){let dist=state.lat?computeDistance(state.lat,state.lon,state.home.lat,state.home.lon):null;list.appendChild(makeWpItem('home','🏠 Home','#22c55e',dist,state.targetId==='home'))}state.waypoints.forEach(wp=>{let dist=state.lat?computeDistance(state.lat,state.lon,wp.lat,wp.lon):null;list.appendChild(makeWpItem(wp.id,wp.name,wp.color,dist,state.targetId===wp.id,wp.id))});empty.style.display=(!state.home&&state.waypoints.length===0)?'block':'none'}
+function makeWpItem(id,name,color,dist,selected,deleteId){let item=document.createElement('div');item.className='wp-item'+(selected?' selected':'');item.onclick=()=>navigateTo(id);let distText='';if(dist!==null)distText=state.unit==='ft'?Math.round(dist*3.28084)+' ft away':(dist>=1000?(dist/1000).toFixed(2)+' km away':Math.round(dist)+' m away');item.innerHTML='<div class="wp-dot" style="background:'+color+'"></div><div class="wp-info"><div class="wp-name">'+name+'</div><div class="wp-dist">'+(distText||'No GPS yet')+'</div></div>'+(selected?'<span style="color:var(--green);font-size:14px">▶</span>':'')+(deleteId?'<button class="wp-del" onclick="deleteWaypoint(\''+deleteId+'\',event)">✕</button>':'');return item}
 function updateWaypointDistances(){renderWaypointList()}
-function getTarget(){
-  if(!state.targetId)return null;
-  if(state.targetId==='home')return state.home;
-  return state.waypoints.find(w=>w.id===state.targetId)||null;
-}
-
-function computeBearing(a,b,c,d){
-  let toRad=x=>x*Math.PI/180;
-  let dLon=toRad(d-b);
-  let y=Math.sin(dLon)*Math.cos(toRad(c));
-  let x=Math.cos(toRad(a))*Math.sin(toRad(c))-Math.sin(toRad(a))*Math.cos(toRad(c))*Math.cos(dLon);
-  return(Math.atan2(y,x)*180/Math.PI+360)%360;
-}
-
-function computeDistance(a,b,c,d){
-  let R=6371000;
-  let toRad=x=>x*Math.PI/180;
-  let dLat=toRad(c-a),dLon=toRad(d-b);
-  let e=Math.sin(dLat/2)**2+Math.cos(toRad(a))*Math.cos(toRad(c))*Math.sin(dLon/2)**2;
-  return R*2*Math.atan2(Math.sqrt(e),Math.sqrt(1-e));
-}
-
-function drawTicks(){
-  let canvas=document.getElementById('tick-canvas');
-  let ring=document.getElementById('compass-ring');
-  let size=ring.offsetWidth||280;
-  canvas.width=size;canvas.height=size;
-  let ctx=canvas.getContext('2d');
-  let cx=size/2,cy=size/2,r=size/2-6;
-  for(let i=0;i<360;i+=5){
-    let ang=(i-90)*Math.PI/180;
-    let isMajor=i%45===0;
-    let len=isMajor?12:(i%15===0?8:4);
-    ctx.beginPath();
-    ctx.moveTo(cx+(r-len)*Math.cos(ang),cy+(r-len)*Math.sin(ang));
-    ctx.lineTo(cx+r*Math.cos(ang),cy+r*Math.sin(ang));
-    ctx.strokeStyle=isMajor?'#6b7280':'#374151';
-    ctx.lineWidth=isMajor?2:1;
-    ctx.stroke();
-  }
-}
-
-function setUnit(u){
-  state.unit=u;
-  document.getElementById('unit-ft').className='btn '+(u==='ft'?'btn-green':'btn-outline');
-  document.getElementById('unit-m').className='btn '+(u==='m'?'btn-green':'btn-outline');
-  document.getElementById('unit-ft').style.cssText='width:auto;padding:6px 14px;font-size:13px';
-  document.getElementById('unit-m').style.cssText='width:auto;padding:6px 14px;font-size:13px';
-  saveState();updateArrow();renderWaypointList();
-}
-
+function getTarget(){if(!state.targetId)return null;if(state.targetId==='home')return state.home;return state.waypoints.find(w=>w.id===state.targetId)||null}
+function computeBearing(a,b,c,d){let toRad=x=>x*Math.PI/180;let dLon=toRad(d-b);let y=Math.sin(dLon)*Math.cos(toRad(c));let x=Math.cos(toRad(a))*Math.sin(toRad(c))-Math.sin(toRad(a))*Math.cos(toRad(c))*Math.cos(dLon);return(Math.atan2(y,x)*180/Math.PI+360)%360}
+function computeDistance(a,b,c,d){let R=6371000;let toRad=x=>x*Math.PI/180;let dLat=toRad(c-a),dLon=toRad(d-b);let e=Math.sin(dLat/2)**2+Math.cos(toRad(a))*Math.cos(toRad(c))*Math.sin(dLon/2)**2;return R*2*Math.atan2(Math.sqrt(e),Math.sqrt(1-e))}
+function drawTicks(){let canvas=document.getElementById('tick-canvas');let ring=document.getElementById('compass-ring');let size=ring.offsetWidth||280;canvas.width=size;canvas.height=size;let ctx=canvas.getContext('2d');let cx=size/2,cy=size/2,r=size/2-6;for(let i=0;i<360;i+=5){let ang=(i-90)*Math.PI/180;let isMajor=i%45===0;let len=isMajor?12:(i%15===0?8:4);ctx.beginPath();ctx.moveTo(cx+(r-len)*Math.cos(ang),cy+(r-len)*Math.sin(ang));ctx.lineTo(cx+r*Math.cos(ang),cy+r*Math.sin(ang));ctx.strokeStyle=isMajor?'#6b7280':'#374151';ctx.lineWidth=isMajor?2:1;ctx.stroke()}}
+function haptic(){if(navigator.vibrate)navigator.vibrate(50)}
+function setUnit(u){state.unit=u;document.getElementById('unit-ft').className='btn '+(u==='ft'?'btn-green':'btn-outline');document.getElementById('unit-m').className='btn '+(u==='m'?'btn-green':'btn-outline');document.getElementById('unit-ft').style.cssText='width:auto;padding:6px 14px;font-size:13px';document.getElementById('unit-m').style.cssText='width:auto;padding:6px 14px;font-size:13px';saveState();updateArrow();renderWaypointList()}
 function toggleSmooth(){state.smooth=!state.smooth;document.getElementById('smooth-toggle').className='toggle'+(state.smooth?' on':'');saveState()}
 function toggleVibe(){state.vibe=!state.vibe;document.getElementById('vibe-toggle').className='toggle'+(state.vibe?' on':'');saveState()}
 function toggleAccuracy(){state.highAcc=!state.highAcc;document.getElementById('acc-toggle').className='toggle'+(state.highAcc?' on':'');saveState();restartGPS()}
-
-function clearAll(){
-  if(!confirm('Clear all?'))return;
-  state.home=null;state.waypoints=[];state.targetId=null;
-  saveState();renderWaypointList();updateHomeInfo();updateArrow();
-  document.getElementById('target-label').textContent='No target set';
-  document.getElementById('distance-val').textContent='---';
-}
-
-function switchTab(id,btn){
-  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-  btn.classList.add('active');
-  if(id==='waypoints-tab')renderWaypointList();
-}
-
-function saveState(){
-  localStorage.setItem('nl',JSON.stringify({home:state.home,wp:state.waypoints,target:state.targetId,unit:state.unit,smooth:state.smooth,vibe:state.vibe,highAcc:state.highAcc}));
-}
-
-function loadState(){
-  try{
-    let s=JSON.parse(localStorage.getItem('nl')||'{}');
-    if(s.home)state.home=s.home;
-    if(s.wp)state.waypoints=s.wp;
-    if(s.target)state.targetId=s.target;
-    if(s.unit)state.unit=s.unit;
-    if(s.smooth!==undefined)state.smooth=s.smooth;
-    if(s.vibe!==undefined)state.vibe=s.vibe;
-    if(s.highAcc!==undefined)state.highAcc=s.highAcc;
-  }catch(e){}
-  setUnit(state.unit);
-  document.getElementById('smooth-toggle').className='toggle'+(state.smooth?' on':'');
-  document.getElementById('vibe-toggle').className='toggle'+(state.vibe?' on':'');
-  document.getElementById('acc-toggle').className='toggle'+(state.highAcc?' on':'');
-}
-
+function clearAll(){if(!confirm('Clear all saved home & waypoints?'))return;state.home=null;state.waypoints=[];state.targetId=null;saveState();renderWaypointList();updateHomeInfo();updateArrow();document.getElementById('target-label').textContent='No target set';document.getElementById('distance-val').textContent='---'}
+function switchTab(id,btn){document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.getElementById(id).classList.add('active');btn.classList.add('active');if(id==='waypoints-tab')renderWaypointList()}
+function saveState(){localStorage.setItem('never_lost',JSON.stringify({home:state.home,waypoints:state.waypoints,targetId:state.targetId,unit:state.unit,smooth:state.smooth,vibe:state.vibe,highAcc:state.highAcc}))}
+function loadState(){try{let s=JSON.parse(localStorage.getItem('never_lost')||'{}');if(s.home)state.home=s.home;if(s.waypoints)state.waypoints=s.waypoints;if(s.targetId)state.targetId=s.targetId;if(s.unit)state.unit=s.unit;if(s.smooth!==undefined)state.smooth=s.smooth;if(s.vibe!==undefined)state.vibe=s.vibe;if(s.highAcc!==undefined)state.highAcc=s.highAcc}catch(e){}setUnit(state.unit);document.getElementById('smooth-toggle').className='toggle'+(state.smooth?' on':'');document.getElementById('vibe-toggle').className='toggle'+(state.vibe?' on':'');document.getElementById('acc-toggle').className='toggle'+(state.highAcc?' on':'')}
 window.addEventListener('resize',()=>{setTimeout(drawTicks,200)});
 </script>
 </body>
