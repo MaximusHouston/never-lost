@@ -1,477 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="theme-color" content="#0a0f1e"/>
+<title>Never Lost</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{--bg:#0a0f1e;--surface:#111827;--surface2:#1f2937;--border:#374151;--green:#22c55e;--blue:#3b82f6;--yellow:#f59e0b;--red:#ef4444;--text:#f9fafb;--muted:#9ca3af;--radius:14px}
+html,body{height:100%;width:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:hidden;touch-action:manipulation}
+#app{display:flex;flex-direction:column;height:100vh;max-height:100dvh}
+#header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 8px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+#header h1{font-size:18px;font-weight:700;letter-spacing:1px;color:var(--green)}
+#header h1 span{color:var(--text)}
+#status-dot{width:10px;height:10px;border-radius:50%;background:var(--muted);transition:background .4s}
+#status-dot.active{background:var(--green);box-shadow:0 0 8px var(--green)}
+#status-dot.warn{background:var(--yellow)}
+#compass-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;padding:16px;min-height:0}
+#compass-ring{position:relative;width:min(72vw,320px);height:min(72vw,320px);flex-shrink:0}
+#compass-ring::before{content:'';position:absolute;inset:0;border-radius:50%;border:3px solid var(--border);background:radial-gradient(circle at 50% 50%,#141c2f 60%,#0d1220)}
+.cardinal{position:absolute;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--muted);transform:translate(-50%,-50%)}
+.cardinal.N{top:6%;left:50%;color:var(--red)}
+.cardinal.S{top:94%;left:50%}
+.cardinal.E{top:50%;left:94%}
+.cardinal.W{top:50%;left:6%}
+#tick-canvas{position:absolute;inset:0;border-radius:50%}
+#arrow-svg{position:absolute;top:50%;left:50%;width:60%;height:60%;transform:translate(-50%,-50%) rotate(0deg);transition:transform 0.25s cubic-bezier(0.34,1.56,0.64,1);filter:drop-shadow(0 0 12px rgba(34,197,94,0.7))}
+#center-dot{position:absolute;top:50%;left:50%;width:18px;height:18px;border-radius:50%;background:var(--surface2);border:2px solid var(--border);transform:translate(-50%,-50%);z-index:10}
+#distance-badge{margin-top:16px;background:var(--surface2);border:1px solid var(--border);border-radius:100px;padding:8px 24px;text-align:center}
+#distance-val{font-size:32px;font-weight:800;color:var(--green);line-height:1}
+#distance-unit{font-size:13px;color:var(--muted);margin-top:2px}
+#target-label{font-size:11px;color:var(--blue);margin-top:4px;text-transform:uppercase;letter-spacing:.8px}
+#info-row{display:flex;gap:8px;margin-top:10px;flex-shrink:0}
+.info-chip{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:11px;color:var(--muted);text-align:center;line-height:1.5}
+.info-chip span{display:block;font-size:13px;font-weight:600;color:var(--text)}
+#bottom-panel{background:var(--surface);border-top:1px solid var(--border);flex-shrink:0}
+#tab-bar{display:flex;border-bottom:1px solid var(--border)}
+.tab-btn{flex:1;padding:10px 4px;background:none;border:none;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;transition:all .2s}
+.tab-btn.active{color:var(--green);border-bottom-color:var(--green)}
+.tab-content{display:none;padding:12px 14px 16px}
+.tab-content.active{display:block}
+.btn{width:100%;padding:12px;border-radius:var(--radius);border:none;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.4px;transition:opacity .15s,transform .1s}
+.btn:active{transform:scale(.97);opacity:.85}
+.btn-green{background:var(--green);color:#000}
+.btn-blue{background:var(--blue);color:#fff}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}
+#wp-list{max-height:130px;overflow-y:auto;margin-top:10px}
+.wp-item{display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px 10px;margin-bottom:6px;cursor:pointer;transition:border-color .2s}
+.wp-item.selected{border-color:var(--blue)}
+.wp-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.wp-info{flex:1;min-width:0}
+.wp-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wp-dist{font-size:11px;color:var(--muted)}
+.wp-del{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:2px 4px}
+#wp-form{display:none;margin-top:10px}
+#wp-form.open{display:flex;gap:8px}
+#wp-name-input{flex:1;padding:10px 12px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:14px}
+.setting-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)}
+.setting-label{font-size:14px}
+.toggle{width:44px;height:24px;border-radius:100px;background:var(--border);border:none;cursor:pointer;position:relative;transition:background .2s}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:white;transition:transform .2s}
+.toggle.on{background:var(--green)}
+.toggle.on::after{transform:translateX(20px)}
+#permission-overlay{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;gap:16px}
+#permission-overlay.hidden{display:none}
+.perm-icon{font-size:64px}
+#permission-overlay h2{font-size:24px;font-weight:800}
+#permission-overlay p{color:var(--muted);font-size:15px;line-height:1.6}
+#cal-banner{display:none;background:rgba(245,158,11,.15);border-bottom:1px solid rgba(245,158,11,.3);padding:6px 14px;font-size:12px;color:var(--yellow);text-align:center}
+#cal-banner.show{display:block}
+@keyframes pulse-ring{0%{transform:translate(-50%,-50%) scale(1);opacity:.8}100%{transform:translate(-50%,-50%) scale(1.5);opacity:0}}
+#pulse{position:absolute;top:50%;left:50%;width:60%;height:60%;border-radius:50%;border:2px solid var(--green);transform:translate(-50%,-50%);opacity:0;pointer-events:none}
+#pulse.pulse{animation:pulse-ring 1s ease-out infinite}
+</style>
+</head>
+<body>
+<div id="permission-overlay">
+<div class="perm-icon">🧭</div>
+<h2>Never Lost</h2>
+<p>This app needs <strong>GPS</strong> and <strong>compass</strong> access.<br>Your data stays on device.</p>
+<button class="btn btn-green" id="enable-btn" style="max-width:280px">Enable GPS & Compass</button>
+<p id="status-msg" style="font-size:12px;color:var(--muted);margin-top:16px"></p>
+</div>
+<div id="app">
+<div id="header"><h1>NEVER <span>LOST</span></h1><div style="display:flex;align-items:center;gap:10px"><span id="accuracy-txt" style="font-size:11px;color:var(--muted)">--</span><div id="status-dot"></div></div></div>
+<div id="cal-banner">⚠️ Move phone in figure-8 to calibrate compass</div>
+<div id="compass-wrap">
+<div id="compass-ring">
+<canvas id="tick-canvas"></canvas>
+<span class="cardinal N">N</span><span class="cardinal S">S</span><span class="cardinal E">E</span><span class="cardinal W">W</span>
+<div id="pulse"></div>
+<svg id="arrow-svg" class="no-target" viewBox="0 0 100 100"><polygon id="arrow-poly" points="50,8 62,55 50,48 38,55" fill="#22c55e"/><polygon points="50,92 62,55 50,62 38,55" fill="rgba(34,197,94,0.35)"/><circle cx="50" cy="10" r="4" fill="#86efac"/></svg>
+<div id="center-dot"></div>
+</div>
+<div id="distance-badge"><div id="distance-val">---</div><div id="distance-unit">feet</div><div id="target-label">No target set</div></div>
+<div id="info-row">
+<div class="info-chip">Heading<span id="heading-val">---°</span></div>
+<div class="info-chip">Bearing<span id="bearing-val">---°</span></div>
+<div class="info-chip">Lat<span id="lat-val">---</span></div>
+<div class="info-chip">Lon<span id="lon-val">---</span></div>
+</div>
+</div>
+<div id="bottom-panel">
+<div id="tab-bar">
+<button class="tab-btn active" onclick="switchTab('home-tab',this)">🏠 Home</button>
+<button class="tab-btn" onclick="switchTab('waypoints-tab',this)">📍 Waypoints</button>
+<button class="tab-btn" onclick="switchTab('settings-tab',this)">⚙️ Settings</button>
+</div>
+<div id="home-tab" class="tab-content active">
+<button class="btn btn-green" onclick="setHome()">📍 Set Home Point Here</button>
+<div id="home-info" style="margin-top:10px;font-size:12px;color:var(--muted);text-align:center"></div>
+<button id="nav-home-btn" class="btn btn-outline" style="margin-top:8px;display:none" onclick="navigateTo('home')">🏠 Navigate to Home</button>
+</div>
+<div id="waypoints-tab" class="tab-content">
+<button class="btn btn-blue" onclick="toggleWpForm()">+ Add Waypoint Here</button>
+<div id="wp-form"><input id="wp-name-input" placeholder="Waypoint name…" maxlength="30" autocomplete="off"/><button class="btn btn-blue" style="width:auto;padding:10px 16px" onclick="saveWaypoint()">Save</button></div>
+<div id="wp-list"></div>
+<div id="wp-empty" style="margin-top:12px;font-size:13px;color:var(--muted);text-align:center;display:none">No waypoints saved yet.</div>
+</div>
+<div id="settings-tab" class="tab-content">
+<div class="setting-row"><span class="setting-label">Distance Unit</span><div style="display:flex;gap:8px"><button id="unit-ft" class="btn btn-green" style="width:auto;padding:6px 14px;font-size:13px" onclick="setUnit('ft')">Feet</button><button id="unit-m" class="btn btn-outline" style="width:auto;padding:6px 14px;font-size:13px" onclick="setUnit('m')">Meters</button></div></div>
+<div class="setting-row"><span class="setting-label">Compass Smoothing</span><button id="smooth-toggle" class="toggle on" onclick="toggleSmooth()"></button></div>
+<div class="setting-row"><span class="setting-label">Near Alert (vibrate)</span><button id="vibe-toggle" class="toggle on" onclick="toggleVibe()"></button></div>
+<div class="setting-row"><span class="setting-label">High Accuracy GPS</span><button id="acc-toggle" class="toggle on" onclick="toggleAccuracy()"></button></div>
+<button class="btn btn-outline" style="margin-top:10px;color:var(--red);border-color:var(--red)" onclick="clearAll()">🗑 Clear All Data</button>
+</div>
+</div>
+</div>
 <script>
-// ─── State ───────────────────────────────────────────────────────────────────
-let state = {
-  lat: null, lon: null,
-  heading: 0,
-  home: null,
-  waypoints: [],
-  targetId: null,
-  unit: 'ft',
-  smooth: true,
-  vibe: true,
-  highAcc: true,
-  gpsWatch: null,
-  smoothHeading: 0,
-  calibrated: true,
-};
-
-const WP_COLORS = ['#3b82f6','#f59e0b','#ec4899','#8b5cf6','#06b6d4','#f97316'];
-
-// ─── Boot ─────────────────────────────────────────────────────────────────────
-window.addEventListener('DOMContentLoaded', () => {
-  loadState();
-  drawTicks();
-  renderWaypointList();
-  updateHomeInfo();
-  
-  // Bind button in code, not HTML
-  document.getElementById('enable-btn')?.addEventListener('click', requestPermissions);
-});
-
-// ─── Permissions ─────────────────────────────────────────────────────────────
-async function requestPermissions() {
-  console.log('Requesting permissions...');
-  
-  // iOS 13-16: explicit permission needed
-  if (typeof DeviceOrientationEvent !== 'undefined' &&
-      typeof DeviceOrientationEvent.requestPermission === 'function') {
-    try {
-      console.log('Requesting iOS compass permission...');
-      const res = await DeviceOrientationEvent.requestPermission();
-      if (res !== 'granted') {
-        alert('Compass permission denied. The app needs compass access to work.');
-        return;
-      }
-      console.log('Compass permission granted');
-    } catch(e) {
-      console.error('Compass permission error:', e);
-    }
-  }
-  
-  startGPS();
-  startCompass();
-  document.getElementById('permission-overlay').classList.add('hidden');
-}
-
-// ─── GPS ──────────────────────────────────────────────────────────────────────
-function startGPS() {
-  if (!navigator.geolocation) { 
-    alert('Geolocation not supported.'); 
-    return; 
-  }
-  
-  console.log('Starting GPS watch...');
-  const opts = { 
-    enableHighAccuracy: state.highAcc, 
-    maximumAge: 2000, 
-    timeout: 15000 
-  };
-  
-  // Clear existing watch if any
-  if (state.gpsWatch !== null) {
-    navigator.geolocation.clearWatch(state.gpsWatch);
-  }
-  
-  state.gpsWatch = navigator.geolocation.watchPosition(onGPS, onGPSError, opts);
-}
-
-function restartGPS() {
-  if (state.gpsWatch !== null) navigator.geolocation.clearWatch(state.gpsWatch);
-  startGPS();
-}
-
-function onGPS(pos) {
-  console.log('GPS position received:', pos.coords.latitude, pos.coords.longitude);
-  state.lat = pos.coords.latitude;
-  state.lon = pos.coords.longitude;
-  document.getElementById('status-dot').className = 'active';
-  const acc = pos.coords.accuracy;
-  document.getElementById('accuracy-txt').textContent = `±${Math.round(acc)}m`;
-  document.getElementById('lat-val').textContent = state.lat.toFixed(5);
-  document.getElementById('lon-val').textContent = state.lon.toFixed(5);
-  updateArrow();
-  updateWaypointDistances();
-  nearAlert();
-}
-
-function onGPSError(e) {
-  console.error('GPS Error:', e.code, e.message);
-  document.getElementById('status-dot').className = 'warn';
-  
-  let msg = 'GPS Error';
-  if (e.code === 1) msg = 'Location permission denied';
-  else if (e.code === 2) msg = 'Position unavailable';
-  else if (e.code === 3) msg = 'GPS timeout';
-  
-  document.getElementById('accuracy-txt').textContent = msg;
-}
-
-// ─── Compass ──────────────────────────────────────────────────────────────────
-function startCompass() {
-  console.log('Starting compass...');
-  window.addEventListener('deviceorientationabsolute', handleOrientation, true);
-  window.addEventListener('deviceorientation', handleOrientation, true);
-  
-  // Show calibration hint
-  const banner = document.getElementById('cal-banner');
-  banner.classList.add('show');
-  setTimeout(() => banner.classList.remove('show'), 8000);
-}
-
-function handleOrientation(e) {
-  let h = null;
-  
-  if (e.absolute && e.alpha !== null) {
-    h = (360 - e.alpha) % 360;
-  } else if (e.webkitCompassHeading !== undefined) {
-    h = e.webkitCompassHeading;
-  } else if (e.alpha !== null) {
-    h = (360 - e.alpha) % 360;
-  }
-  
-  if (h === null) return;
-
-  // Calibration check for iOS
-  if (e.webkitCompassAccuracy !== undefined && e.webkitCompassAccuracy > 50) {
-    document.getElementById('cal-banner').classList.add('show');
-  } else if (e.webkitCompassAccuracy !== undefined) {
-    document.getElementById('cal-banner').classList.remove('show');
-  }
-
-  if (state.smooth) {
-    state.smoothHeading = circularLerp(state.smoothHeading, h, 0.15);
-    state.heading = state.smoothHeading;
-  } else {
-    state.heading = h;
-  }
-
-  document.getElementById('heading-val').textContent = Math.round(state.heading) + '°';
-  updateArrow();
-}
-
-function circularLerp(a, b, t) {
-  let diff = b - a;
-  while (diff > 180) diff -= 360;
-  while (diff < -180) diff += 360;
-  return (a + diff * t + 360) % 360;
-}
-
-// ─── Arrow ────────────────────────────────────────────────────────────────────
-function updateArrow() {
-  const target = getTarget();
-  const svg = document.getElementById('arrow-svg');
-  const poly = document.getElementById('arrow-poly');
-
-  if (!target || state.lat === null) {
-    svg.classList.add('no-target');
-    svg.style.transform = `translate(-50%, -50%) rotate(0deg)`;
-    document.getElementById('distance-val').textContent = '---';
-    document.getElementById('bearing-val').textContent = '---°';
-    return;
-  }
-
-  svg.classList.remove('no-target');
-
-  const bearing = computeBearing(state.lat, state.lon, target.lat, target.lon);
-  const dist = computeDistance(state.lat, state.lon, target.lat, target.lon);
-  const rotation = (bearing - state.heading + 360) % 360;
-  svg.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
-
-  const isHome = state.targetId === 'home';
-  poly.setAttribute('fill', isHome ? '#22c55e' : (target.color || '#3b82f6'));
-  svg.style.filter = isHome
-    ? 'drop-shadow(0 0 12px rgba(34,197,94,0.7))'
-    : `drop-shadow(0 0 12px ${target.color || '#3b82f6'}88)`;
-
-  let distDisplay, unitLabel;
-  if (state.unit === 'ft') {
-    distDisplay = (dist * 3.28084).toFixed(0);
-    unitLabel = 'feet';
-  } else {
-    distDisplay = dist >= 1000 ? (dist/1000).toFixed(2) + ' km' : dist.toFixed(1);
-    unitLabel = dist >= 1000 ? '' : 'meters';
-  }
-
-  document.getElementById('distance-val').textContent = distDisplay;
-  document.getElementById('distance-unit').textContent = unitLabel;
-  document.getElementById('bearing-val').textContent = Math.round(bearing) + '°';
-}
-
-// ─── Near Alert ───────────────────────────────────────────────────────────────
-let lastNearAlert = 0;
-function nearAlert() {
-  const target = getTarget();
-  if (!target || state.lat === null) { 
-    document.getElementById('pulse').classList.remove('pulse'); 
-    return; 
-  }
-  const dist = computeDistance(state.lat, state.lon, target.lat, target.lon);
-  const threshold = state.unit === 'ft' ? 10 : 3;
-  if (dist <= threshold) {
-    document.getElementById('pulse').classList.add('pulse');
-    const now = Date.now();
-    if (state.vibe && now - lastNearAlert > 3000 && navigator.vibrate) {
-      navigator.vibrate([200, 100, 200]);
-      lastNearAlert = now;
-    }
-  } else {
-    document.getElementById('pulse').classList.remove('pulse');
-  }
-}
-
-// ─── Home ────────────────────────────────────────────────────────────────────
-function setHome() {
-  if (state.lat === null) { alert('GPS not ready yet. Please wait for GPS lock.'); return; }
-  state.home = { lat: state.lat, lon: state.lon };
-  state.targetId = 'home';
-  saveState();
-  updateHomeInfo();
-  updateArrow();
-  document.getElementById('target-label').textContent = '🏠 Navigating to Home';
-  haptic();
-}
-
-function updateHomeInfo() {
-  const el = document.getElementById('home-info');
-  const btn = document.getElementById('nav-home-btn');
-  if (state.home) {
-    el.textContent = `Home: ${state.home.lat.toFixed(5)}, ${state.home.lon.toFixed(5)}`;
-    btn.style.display = 'block';
-  } else {
-    el.textContent = 'No home point set. Stand at your starting point and tap the button above.';
-    btn.style.display = 'none';
-  }
-}
-
-// ─── Waypoints ────────────────────────────────────────────────────────────────
-function toggleWpForm() {
-  const f = document.getElementById('wp-form');
-  f.classList.toggle('open');
-  if (f.classList.contains('open')) document.getElementById('wp-name-input').focus();
-}
-
-function saveWaypoint() {
-  if (state.lat === null) { alert('GPS not ready yet.'); return; }
-  const nameEl = document.getElementById('wp-name-input');
-  const name = nameEl.value.trim() || `Waypoint ${state.waypoints.length + 1}`;
-  const color = WP_COLORS[state.waypoints.length % WP_COLORS.length];
-  const wp = { id: Date.now().toString(), name, lat: state.lat, lon: state.lon, color };
-  state.waypoints.push(wp);
-  state.targetId = wp.id;
-  nameEl.value = '';
-  document.getElementById('wp-form').classList.remove('open');
-  saveState();
-  renderWaypointList();
-  updateArrow();
-  document.getElementById('target-label').textContent = `📍 Navigating to ${name}`;
-  haptic();
-}
-
-function navigateTo(id) {
-  state.targetId = id;
-  saveState();
-  updateArrow();
-  const target = getTarget();
-  document.getElementById('target-label').textContent = id === 'home'
-    ? '🏠 Navigating to Home'
-    : `📍 Navigating to ${target ? target.name : ''}`;
-  renderWaypointList();
-  switchTab('home-tab', document.querySelector('.tab-btn'));
-  haptic();
-}
-
-function deleteWaypoint(id, e) {
-  e.stopPropagation();
-  state.waypoints = state.waypoints.filter(w => w.id !== id);
-  if (state.targetId === id) state.targetId = state.home ? 'home' : null;
-  saveState();
-  renderWaypointList();
-  updateArrow();
-}
-
-function renderWaypointList() {
-  const list = document.getElementById('wp-list');
-  const empty = document.getElementById('wp-empty');
-  list.innerHTML = '';
-
-  if (state.home) {
-    const dist = state.lat ? computeDistance(state.lat, state.lon, state.home.lat, state.home.lon) : null;
-    const item = makeWpItem('home', '🏠 Home', '#22c55e', dist, state.targetId === 'home');
-    list.appendChild(item);
-  }
-
-  state.waypoints.forEach(wp => {
-    const dist = state.lat ? computeDistance(state.lat, state.lon, wp.lat, wp.lon) : null;
-    const item = makeWpItem(wp.id, wp.name, wp.color, dist, state.targetId === wp.id, wp.id);
-    list.appendChild(item);
-  });
-
-  empty.style.display = (!state.home && state.waypoints.length === 0) ? 'block' : 'none';
-}
-
-function makeWpItem(id, name, color, dist, selected, deleteId) {
-  const item = document.createElement('div');
-  item.className = 'wp-item' + (selected ? ' selected' : '');
-  item.onclick = () => navigateTo(id);
-
-  let distText = '';
-  if (dist !== null) {
-    distText = state.unit === 'ft'
-      ? `${(dist * 3.28084).toFixed(0)} ft away`
-      : (dist >= 1000 ? `${(dist/1000).toFixed(2)} km away` : `${dist.toFixed(1)} m away`);
-  }
-
-  item.innerHTML = `
-    <div class="wp-dot" style="background:${color}"></div>
-    <div class="wp-info">
-      <div class="wp-name">${name}</div>
-      <div class="wp-dist">${distText || 'No GPS yet'}</div>
-    </div>
-    ${selected ? '<span style="color:var(--green);font-size:14px">▶</span>' : ''}
-    ${deleteId ? `<button class="wp-del" onclick="deleteWaypoint('${deleteId}', event)">✕</button>` : ''}
-  `;
-  return item;
-}
-
-function updateWaypointDistances() {
-  renderWaypointList();
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function getTarget() {
-  if (!state.targetId) return null;
-  if (state.targetId === 'home') return state.home;
-  return state.waypoints.find(w => w.id === state.targetId) || null;
-}
-
-function computeBearing(lat1, lon1, lat2, lon2) {
-  const toRad = d => d * Math.PI / 180;
-  const dLon = toRad(lon2 - lon1);
-  const y = Math.sin(dLon) * Math.cos(toRad(lat2));
-  const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
-            Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
-  return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
-}
-
-function computeDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371000;
-  const toRad = d => d * Math.PI / 180;
-  const dLat = toRad(lat2 - lat1), dLon = toRad(lon2 - lon1);
-  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-}
-
-function drawTicks() {
-  const canvas = document.getElementById('tick-canvas');
-  const ring = document.getElementById('compass-ring');
-  const size = ring.offsetWidth || 280;
-  canvas.width = size; canvas.height = size;
-  const ctx = canvas.getContext('2d');
-  const cx = size/2, cy = size/2, r = size/2 - 6;
-  for (let i = 0; i < 360; i += 5) {
-    const ang = (i - 90) * Math.PI / 180;
-    const isMajor = i % 45 === 0;
-    const len = isMajor ? 12 : (i % 15 === 0 ? 8 : 4);
-    ctx.beginPath();
-    ctx.moveTo(cx + (r - len) * Math.cos(ang), cy + (r - len) * Math.sin(ang));
-    ctx.lineTo(cx + r * Math.cos(ang), cy + r * Math.sin(ang));
-    ctx.strokeStyle = isMajor ? '#6b7280' : '#374151';
-    ctx.lineWidth = isMajor ? 2 : 1;
-    ctx.stroke();
-  }
-}
-
-function haptic() {
-  if (navigator.vibrate) navigator.vibrate(50);
-}
-
-// ─── Settings ────────────────────────────────────────────────────────────────
-function setUnit(u) {
-  state.unit = u;
-  document.getElementById('unit-ft').className = 'btn ' + (u === 'ft' ? 'btn-green' : 'btn-outline');
-  document.getElementById('unit-m').className = 'btn ' + (u === 'm' ? 'btn-green' : 'btn-outline');
-  document.getElementById('unit-ft').style.cssText = 'width:auto;padding:6px 14px;font-size:13px';
-  document.getElementById('unit-m').style.cssText = 'width:auto;padding:6px 14px;font-size:13px';
-  saveState();
-  updateArrow();
-  renderWaypointList();
-}
-
-function toggleSmooth() {
-  state.smooth = !state.smooth;
-  document.getElementById('smooth-toggle').className = 'toggle' + (state.smooth ? ' on' : '');
-  saveState();
-}
-
-function toggleVibe() {
-  state.vibe = !state.vibe;
-  document.getElementById('vibe-toggle').className = 'toggle' + (state.vibe ? ' on' : '');
-  saveState();
-}
-
-function toggleAccuracy() {
-  state.highAcc = !state.highAcc;
-  document.getElementById('acc-toggle').className = 'toggle' + (state.highAcc ? ' on' : '');
-  saveState();
-  restartGPS();
-}
-
-function clearAll() {
-  if (!confirm('Clear all saved home & waypoints?')) return;
-  state.home = null; state.waypoints = []; state.targetId = null;
-  saveState();
-  renderWaypointList();
-  updateHomeInfo();
-  updateArrow();
-  document.getElementById('target-label').textContent = 'No target set';
-  document.getElementById('distance-val').textContent = '---';
-}
-
-// ─── Tab switching ────────────────────────────────────────────────────────────
-function switchTab(id, btn) {
-  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-  btn.classList.add('active');
-  if (id === 'waypoints-tab') renderWaypointList();
-}
-
-// ─── Persistence ──────────────────────────────────────────────────────────────
-function saveState() {
-  localStorage.setItem('never_lost', JSON.stringify({
-    home: state.home, waypoints: state.waypoints,
-    targetId: state.targetId, unit: state.unit,
-    smooth: state.smooth, vibe: state.vibe, highAcc: state.highAcc
-  }));
-}
-
-function loadState() {
-  try {
-    const s = JSON.parse(localStorage.getItem('never_lost') || '{}');
-    if (s.home) state.home = s.home;
-    if (s.waypoints) state.waypoints = s.waypoints;
-    if (s.targetId) state.targetId = s.targetId;
-    if (s.unit) state.unit = s.unit;
-    if (s.smooth !== undefined) state.smooth = s.smooth;
-    if (s.vibe !== undefined) state.vibe = s.vibe;
-    if (s.highAcc !== undefined) state.highAcc = s.highAcc;
-  } catch(e) {}
-  
-  setUnit(state.unit);
-  document.getElementById('smooth-toggle').className = 'toggle' + (state.smooth ? ' on' : '');
-  document.getElementById('vibe-toggle').className = 'toggle' + (state.vibe ? ' on' : '');
-  document.getElementById('acc-toggle').className = 'toggle' + (state.highAcc ? ' on' : '');
-  
-  if (state.targetId) {
-    const t = getTarget();
-    if (t) {
-      document.getElementById('target-label').textContent = state.targetId === 'home'
-        ? '🏠 Navigating to Home' : `📍 Navigating to ${t.name}`;
-    }
-  }
-}
-
-window.addEventListener('resize', () => {
-  setTimeout(drawTicks, 200);
-});
+let state={lat:null,lon:null,heading:0,home:null,waypoints:[],targetId:null,unit:'ft',smooth:true,vibe:true,highAcc:true,gpsWatch:null,smoothHeading:0};
+const WP_COLORS=['#3b82f6','#f59e0b','#ec4899','#8b5cf6','#06b6d4','#f97316'];
+window.addEventListener('DOMContentLoaded',()=>{loadState();drawTicks();renderWaypointList();updateHomeInfo();document.getElementById('enable-btn').addEventListener('click',requestPermissions)});
+async function requestPermissions(){if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){try{await DeviceOrientationEvent.requestPermission()}catch(e){}}startGPS();startCompass();document.getElementById('permission-overlay').classList.add('hidden')}
+function startGPS(){if(!navigator.geolocation)return;const opts={enableHighAccuracy:state.highAcc,maximumAge:2000,timeout:15000};if(state.gpsWatch!==null)navigator.geolocation.clearWatch(state.gpsWatch);state.gpsWatch=navigator.geolocation.watchPosition(onGPS,onGPSError,opts)}
+function restartGPS(){if(state.gpsWatch!==null)navigator.geolocation.clearWatch(state.gpsWatch);startGPS()}
+function onGPS(pos){state.lat=pos.coords.latitude;state.lon=pos.coords.longitude;document.getElementById('status-dot').className='active';document.getElementById('accuracy-txt').textContent='±'+Math.round(pos.coords.accuracy)+'m';document.getElementById('lat-val').textContent=state.lat.toFixed(5);document.getElementById('lon-val').textContent=state.lon.toFixed(5);updateArrow();updateWaypointDistances();nearAlert()}
+function onGPSError(e){document.getElementById('status-dot').className='warn';document.getElementById('accuracy-txt').textContent='GPS Error'}
+function startCompass(){window.addEventListener('deviceorientationabsolute',handleOrientation,true);window.addEventListener('deviceorientation',handleOrientation,true);document.getElementById('cal-banner').classList.add('show');setTimeout(()=>document.getElementById('cal-banner').classList.remove('show'),8000)}
+function handleOrientation(e){let h=null;if(e.absolute&&e.alpha!==null)h=(360-e.alpha)%360;else if(e.webkitCompassHeading!==undefined)h=e.webkitCompassHeading;else if(e.alpha!==null)h=(360-e.alpha)%360;if(h===null)return;if(state.smooth){state.smoothHeading=circularLerp(state.smoothHeading,h,0.15);state.heading=state.smoothHeading}else state.heading=h;document.getElementById('heading-val').textContent=Math.round(state.heading)+'°';updateArrow()}
+function circularLerp(a,b,t){let diff=b-a;while(diff>180)diff-=360;while(diff<-180)diff+=360;return(a+diff*t+360)%360}
+function updateArrow(){let target=getTarget();let svg=document.getElementById('arrow-svg');if(!target||state.lat===null){svg.classList.add('no-target');svg.style.transform='translate(-50%,-50%) rotate(0deg)';document.getElementById('distance-val').textContent='---';document.getElementById('bearing-val').textContent='---°';return}svg.classList.remove('no-target');let bearing=computeBearing(state.lat,state.lon,target.lat,target.lon);let dist=computeDistance(state.lat,state.lon,target.lat,target.lon);let rotation=(bearing-state.heading+360)%360;svg.style.transform='translate(-50%,-50%) rotate('+rotation+'deg)';let isHome=state.targetId==='home';document.getElementById('arrow-poly').setAttribute('fill',isHome?'#22c55e':(target.color||'#3b82f6'));let distDisplay,unitLabel;if(state.unit==='ft'){distDisplay=(dist*3.28084).toFixed(0);unitLabel='feet'}else{distDisplay=dist>=1000?(dist/1000).toFixed(2)+' km':dist.toFixed(1);unitLabel=dist>=1000?'':'meters'}document.getElementById('distance-val').textContent=distDisplay;document.getElementById('distance-unit').textContent=unitLabel;document.getElementById('bearing-val').textContent=Math.round(bearing)+'°'}
+let lastNearAlert=0;
+function nearAlert(){let target=getTarget();if(!target||state.lat===null){document.getElementById('pulse').classList.remove('pulse');return}let dist=computeDistance(state.lat,state.lon,target.lat,target.lon);if(dist<=(state.unit==='ft'?10:3)){document.getElementById('pulse').classList.add('pulse');let now=Date.now();if(state.vibe&&now-lastNearAlert>3000&&navigator.vibrate){navigator.vibrate([200,100,200]);lastNearAlert=now}}else document.getElementById('pulse').classList.remove('pulse')}
+function setHome(){if(state.lat===null){alert('GPS not ready yet.');return}state.home={lat:state.lat,lon:state.lon};state.targetId='home';saveState();updateHomeInfo();updateArrow();document.getElementById('target-label').textContent='🏠 Navigating to Home';haptic()}
+function updateHomeInfo(){let el=document.getElementById('home-info');let btn=document.getElementById('nav-home-btn');if(state.home){el.textContent='Home: '+state.home.lat.toFixed(5)+', '+state.home.lon.toFixed(5);btn.style.display='block'}else{el.textContent='No home point set.';btn.style.display='none'}}
+function toggleWpForm(){let f=document.getElementById('wp-form');f.classList.toggle('open');if(f.classList.contains('open'))document.getElementById('wp-name-input').focus()}
+function saveWaypoint(){if(state.lat===null){alert('GPS not ready yet.');return}let name=document.getElementById('wp-name-input').value.trim()||'Waypoint '+(state.waypoints.length+1);let color=WP_COLORS[state.waypoints.length%WP_COLORS.length];let wp={id:Date.now().toString(),name:name,lat:state.lat,lon:state.lon,color:color};state.waypoints.push(wp);state.targetId=wp.id;document.getElementById('wp-name-input').value='';document.getElementById('wp-form').classList.remove('open');saveState();renderWaypointList();updateArrow();document.getElementById('target-label').textContent='📍 Navigating to '+name;haptic()}
+function navigateTo(id){state.targetId=id;saveState();updateArrow();let target=getTarget();document.getElementById('target-label').textContent=id==='home'?'🏠 Navigating to Home':'📍 Navigating to '+(target?target.name:'');renderWaypointList();switchTab('home-tab',document.querySelector('.tab-btn'));haptic()}
+function deleteWaypoint(id,e){e.stopPropagation();state.waypoints=state.waypoints.filter(w=>w.id!==id);if(state.targetId===id)state.targetId=state.home?'home':null;saveState();renderWaypointList();updateArrow()}
+function renderWaypointList(){let list=document.getElementById('wp-list');let empty=document.getElementById('wp-empty');list.innerHTML='';if(state.home){let dist=state.lat?computeDistance(state.lat,state.lon,state.home.lat,state.home.lon):null;list.appendChild(makeWpItem('home','🏠 Home','#22c55e',dist,state.targetId==='home'))}state.waypoints.forEach(wp=>{let dist=state.lat?computeDistance(state.lat,state.lon,wp.lat,wp.lon):null;list.appendChild(makeWpItem(wp.id,wp.name,wp.color,dist,state.targetId===wp.id,wp.id))});empty.style.display=(!state.home&&state.waypoints.length===0)?'block':'none'}
+function makeWpItem(id,name,color,dist,selected,deleteId){let item=document.createElement('div');item.className='wp-item'+(selected?' selected':'');item.onclick=()=>navigateTo(id);let distText='';if(dist!==null)distText=state.unit==='ft'?Math.round(dist*3.28084)+' ft away':(dist>=1000?(dist/1000).toFixed(2)+' km away':dist.toFixed(1)+' m away');item.innerHTML='<div class="wp-dot" style="background:'+color+'"></div><div class="wp-info"><div class="wp-name">'+name+'</div><div class="wp-dist">'+(distText||'No GPS yet')+'</div></div>'+(selected?'<span style="color:var(--green);font-size:14px">▶</span>':'')+(deleteId?'<button class="wp-del" onclick="deleteWaypoint(\''+deleteId+'\',event)">✕</button>':'');return item}
+function updateWaypointDistances(){renderWaypointList()}
+function getTarget(){if(!state.targetId)return null;if(state.targetId==='home')return state.home;return state.waypoints.find(w=>w.id===state.targetId)||null}
+function computeBearing(a,b,c,d){let toRad=x=>x*Math.PI/180;let dLon=toRad(d-b);let y=Math.sin(dLon)*Math.cos(toRad(c));let x=Math.cos(toRad(a))*Math.sin(toRad(c))-Math.sin(toRad(a))*Math.cos(toRad(c))*Math.cos(dLon);return(Math.atan2(y,x)*180/Math.PI+360)%360}
+function computeDistance(a,b,c,d){let R=6371000;let toRad=x=>x*Math.PI/180;let dLat=toRad(c-a),dLon=toRad(d-b);let e=Math.sin(dLat/2)**2+Math.cos(toRad(a))*Math.cos(toRad(c))*Math.sin(dLon/2)**2;return R*2*Math.atan2(Math.sqrt(e),Math.sqrt(1-e))}
+function drawTicks(){let canvas=document.getElementById('tick-canvas');let ring=document.getElementById('compass-ring');let size=ring.offsetWidth||280;canvas.width=size;canvas.height=size;let ctx=canvas.getContext('2d');let cx=size/2,cy=size/2,r=size/2-6;for(let i=0;i<360;i+=5){let ang=(i-90)*Math.PI/180;let isMajor=i%45===0;let len=isMajor?12:(i%15===0?8:4);ctx.beginPath();ctx.moveTo(cx+(r-len)*Math.cos(ang),cy+(r-len)*Math.sin(ang));ctx.lineTo(cx+r*Math.cos(ang),cy+r*Math.sin(ang));ctx.strokeStyle=isMajor?'#6b7280':'#374151';ctx.lineWidth=isMajor?2:1;ctx.stroke()}}
+function haptic(){if(navigator.vibrate)navigator.vibrate(50)}
+function setUnit(u){state.unit=u;document.getElementById('unit-ft').className='btn '+(u==='ft'?'btn-green':'btn-outline');document.getElementById('unit-m').className='btn '+(u==='m'?'btn-green':'btn-outline');document.getElementById('unit-ft').style.cssText='width:auto;padding:6px 14px;font-size:13px';document.getElementById('unit-m').style.cssText='width:auto;padding:6px 14px;font-size:13px';saveState();updateArrow();renderWaypointList()}
+function toggleSmooth(){state.smooth=!state.smooth;document.getElementById('smooth-toggle').className='toggle'+(state.smooth?' on':'');saveState()}
+function toggleVibe(){state.vibe=!state.vibe;document.getElementById('vibe-toggle').className='toggle'+(state.vibe?' on':'');saveState()}
+function toggleAccuracy(){state.highAcc=!state.highAcc;document.getElementById('acc-toggle').className='toggle'+(state.highAcc?' on':'');saveState();restartGPS()}
+function clearAll(){if(!confirm('Clear all saved home & waypoints?'))return;state.home=null;state.waypoints=[];state.targetId=null;saveState();renderWaypointList();updateHomeInfo();updateArrow();document.getElementById('target-label').textContent='No target set';document.getElementById('distance-val').textContent='---'}
+function switchTab(id,btn){document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.getElementById(id).classList.add('active');btn.classList.add('active');if(id==='waypoints-tab')renderWaypointList()}
+function saveState(){localStorage.setItem('never_lost',JSON.stringify({home:state.home,waypoints:state.waypoints,targetId:state.targetId,unit:state.unit,smooth:state.smooth,vibe:state.vibe,highAcc:state.highAcc}))}
+function loadState(){try{let s=JSON.parse(localStorage.getItem('never_lost')||'{}');if(s.home)state.home=s.home;if(s.waypoints)state.waypoints=s.waypoints;if(s.targetId)state.targetId=s.targetId;if(s.unit)state.unit=s.unit;if(s.smooth!==undefined)state.smooth=s.smooth;if(s.vibe!==undefined)state.vibe=s.vibe;if(s.highAcc!==undefined)state.highAcc=s.highAcc}catch(e){}setUnit(state.unit);document.getElementById('smooth-toggle').className='toggle'+(state.smooth?' on':'');document.getElementById('vibe-toggle').className='toggle'+(state.vibe?' on':'');document.getElementById('acc-toggle').className='toggle'+(state.highAcc?' on':'')}
+window.addEventListener('resize',()=>{setTimeout(drawTicks,200)});
 </script>
+</body>
+</html>
